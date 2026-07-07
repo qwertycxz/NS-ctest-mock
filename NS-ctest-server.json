@@ -13,9 +13,9 @@
   "address_space_type": 3,
   "disable_device_address_space_merge": true,
   "filesystem_access": {
-    "permissions": "0xFFFFFFFFFFFFFFFF"
+    "permissions": "0x0"
   },
-  "service_access": ["fsp-srv", "bsd:s", "fatal:u"],
+  "service_access": ["bsd:s", "fatal:u"],
   "service_host": [],
   "kernel_capabilities": [
     {

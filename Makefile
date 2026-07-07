@@ -1,41 +1,100 @@
-ATMOSPHERE_BUILD_CONFIGS :=
+#---------------------------------------------------------------------------------
+.SUFFIXES:
+#---------------------------------------------------------------------------------
+
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
+endif
+
+TOPDIR ?= $(CURDIR)
+include $(DEVKITPRO)/libnx/switch_rules
+
+TARGET      := NS-ctest-server
+APP_TITLEID := 4200000000004354
+BUILD       := build
+SOURCES     := source
+DATA        := data
+INCLUDES    := include
+
+ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+
+CFLAGS := -g -Wall -O2 -ffunction-sections -std=gnu23 \
+	$(ARCH) $(DEFINES)
+CFLAGS += $(INCLUDE) -D__SWITCH__
+
+ASFLAGS := -g $(ARCH)
+LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(TARGET).map
+
+LIBS := -lnx
+LIBDIRS := $(PORTLIBS) $(LIBNX)
+
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+
+export OUTPUT := $(CURDIR)/$(TARGET)
+export TOPDIR := $(CURDIR)
+
+export VPATH := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+	$(foreach dir,$(DATA),$(CURDIR)/$(dir))
+
+export DEPSDIR := $(CURDIR)/$(BUILD)
+
+CFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+SFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+BINFILES := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+
+export LD := $(CC)
+
+export OFILES_BIN := $(addsuffix .o,$(BINFILES))
+export OFILES_SRC := $(CFILES:.c=.o) $(SFILES:.s=.o)
+export OFILES     := $(OFILES_BIN) $(OFILES_SRC)
+export HFILES_BIN := $(addsuffix .h,$(subst .,_,$(BINFILES)))
+
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+	$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+	-I$(CURDIR)/$(BUILD)
+
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+export APP_JSON := $(TOPDIR)/$(TARGET).json
+export BUILD_EXEFS_SRC :=
+
+.PHONY: all clean nx_release package_release $(BUILD)
+
 all: nx_release
 
-THIS_MAKEFILE     := $(abspath $(lastword $(MAKEFILE_LIST)))
-CURRENT_DIRECTORY := $(abspath $(dir $(THIS_MAKEFILE)))
+nx_release: $(BUILD) package_release
 
-define ATMOSPHERE_ADD_TARGET
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-ATMOSPHERE_BUILD_CONFIGS += $(strip $1)
+package_release: $(TARGET).nsp
+	@mkdir -p out/$(APP_TITLEID)/flags
+	@cp $(TARGET).nsp out/$(APP_TITLEID)/exefs.nsp
+	@cp toolbox.json out/$(APP_TITLEID)/toolbox.json
+	@touch out/$(APP_TITLEID)/flags/boot2.flag
 
-$(strip $1):
-	@echo "Building $(strip $1)"
-	@$$(MAKE) -f $(CURRENT_DIRECTORY)/system_module.mk ATMOSPHERE_MAKEFILE_TARGET="$(strip $1)" ATMOSPHERE_BUILD_NAME="$(strip $2)" ATMOSPHERE_BOARD="$(strip $3)" ATMOSPHERE_CPU="$(strip $4)" $(strip $5)
+clean:
+	@echo clean ...
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).lst $(TARGET).map $(TARGET).npdm $(TARGET).nso $(TARGET).nsp out
 
-clean-$(strip $1):
-	@echo "Cleaning $(strip $1)"
-	@$$(MAKE) -f $(CURRENT_DIRECTORY)/system_module.mk clean ATMOSPHERE_MAKEFILE_TARGET="$(strip $1)" ATMOSPHERE_BUILD_NAME="$(strip $2)" ATMOSPHERE_BOARD="$(strip $3)" ATMOSPHERE_CPU="$(strip $4)" $(strip $5)
+else
 
-endef
+.PHONY: all
 
-define ATMOSPHERE_ADD_TARGETS
+DEPENDS := $(OFILES:.o=.d)
 
-$(eval $(call ATMOSPHERE_ADD_TARGET, $(strip $1)_release, release, $(strip $2), $(strip $3), \
-    ATMOSPHERE_BUILD_SETTINGS="$(strip $4)" \
-))
+all: $(OUTPUT).nsp
 
-$(eval $(call ATMOSPHERE_ADD_TARGET, $(strip $1)_debug, debug, $(strip $2), $(strip $3), \
-    ATMOSPHERE_BUILD_SETTINGS="$(strip $4) -DAMS_BUILD_FOR_DEBUGGING" ATMOSPHERE_BUILD_FOR_DEBUGGING=1 \
-))
+$(OUTPUT).nsp: $(OUTPUT).nso $(OUTPUT).npdm
+$(OUTPUT).nso: $(OUTPUT).elf
+$(OUTPUT).elf: $(OFILES)
 
-$(eval $(call ATMOSPHERE_ADD_TARGET, $(strip $1)_audit, audit, $(strip $2), $(strip $3), \
-    ATMOSPHERE_BUILD_SETTINGS="$(strip $4) -DAMS_BUILD_FOR_AUDITING" ATMOSPHERE_BUILD_FOR_DEBUGGING=1 ATMOSPHERE_BUILD_FOR_AUDITING=1 \
-))
+$(OFILES_SRC): $(HFILES_BIN)
 
-endef
+%.bin.o %_bin.h: %.bin
+	@echo $(notdir $<)
+	@$(bin2o)
 
-$(eval $(call ATMOSPHERE_ADD_TARGETS, nx, nx-hac-001, arm-cortex-a57,))
+-include $(DEPENDS)
 
-clean: $(foreach config,$(ATMOSPHERE_BUILD_CONFIGS),clean-$(config))
-
-.PHONY: all clean $(foreach config,$(ATMOSPHERE_BUILD_CONFIGS), $(config) clean-$(config))
+endif
