@@ -9,8 +9,8 @@ endif
 TOPDIR ?= $(CURDIR)
 include $(DEVKITPRO)/libnx/switch_rules
 
-TARGET      := NS-ctest-server
-APP_TITLEID := 4200000000004354
+TARGET      := NS-ctest-mock
+APP_TITLEID := 4E532D6374657374
 BUILD       := build
 SOURCES     := source
 DATA        := data

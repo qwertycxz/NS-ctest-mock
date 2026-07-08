@@ -1,4 +1,4 @@
-# NS-ctest-server
+# NS-ctest-mock
 
 Minimal libnx C sysmodule for serving Nintendo Switch connection-test HTTP
 responses on local loopback.
@@ -22,7 +22,7 @@ make
 The packaged boot2 sysmodule is written to:
 
 ```text
-out/4200000000004354/
+out/4E532D6374657374/
 ```
 
 `ctest.cdn.nintendo.net` still needs to be DNS MITM'd to `127.0.0.1`;
