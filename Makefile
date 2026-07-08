@@ -11,7 +11,8 @@ TARGET      := NS-ctest-mock
 APP_TITLEID := 4E532D6374657374
 BUILD       := build
 SOURCES     := src
-OUT_DIR     := dist/$(APP_TITLEID)
+OUT_ROOT    := atmosphere/contents
+OUT_DIR     := $(OUT_ROOT)/$(APP_TITLEID)
 BUILD_NSP   := $(BUILD)/$(TARGET).nsp
 
 ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
@@ -67,7 +68,7 @@ $(OUT_DIR)/toolbox.json: toolbox.json
 	@cp $< $@
 
 clean:
-	@rm -rf $(BUILD) out
+	@rm -rf $(BUILD) $(OUT_ROOT)
 
 else
 
