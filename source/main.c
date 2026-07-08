@@ -65,7 +65,6 @@ void __appExit(void) {
 	bsdExit();
 }
 
-static const auto OPTION_LENGTH = sizeof(uint32_t);
 // clang-format off
 static const char HTTP_RESPONSE[] =
 	"HTTP/1.0 200 OK\r\n"
@@ -74,17 +73,30 @@ static const char HTTP_RESPONSE[] =
 	"\r\n"
 	"ok";
 // clang-format on
+
+static const auto ADDRESS_LENGTH = sizeof(struct sockaddr_in);
 static const auto HTTP_LENGTH = sizeof(HTTP_RESPONSE) - 1;
+static const auto OPTION_LENGTH = sizeof(uint32_t);
 
 int main() {
 	do {
 		const auto server = bsdSocketExempt(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (server < 0) continue;
 
-		const struct sockaddr_in address = { sizeof(address), AF_INET, htons(80), { htonl(INADDR_LOOPBACK) } };
 		if (bsdSetSockOpt(server, SOL_SOCKET, SO_NOSIGPIPE, &(bool) { true }, OPTION_LENGTH) ||
 			bsdSetSockOpt(server, SOL_SOCKET, SO_REUSEADDR, &(bool) { true }, OPTION_LENGTH) ||
-			bsdBind(server, (const struct sockaddr* const)&address, sizeof(address)) ||
+			bsdBind(
+				server,
+				(const struct sockaddr* const)&(const struct sockaddr_in) {
+					.sin_len = ADDRESS_LENGTH,
+					.sin_family = AF_INET,
+					.sin_port = htons(80),
+					.sin_addr = {
+						.s_addr = htonl(INADDR_LOOPBACK),
+					},
+				},
+				ADDRESS_LENGTH
+			) ||
 			bsdListen(server, SOMAXCONN)) {
 			goto close;
 		}
