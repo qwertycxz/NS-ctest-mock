@@ -1,6 +1,4 @@
-#---------------------------------------------------------------------------------
 .SUFFIXES:
-#---------------------------------------------------------------------------------
 
 ifeq ($(strip $(DEVKITPRO)),)
 $(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
@@ -12,9 +10,9 @@ include $(DEVKITPRO)/libnx/switch_rules
 TARGET      := NS-ctest-mock
 APP_TITLEID := 4E532D6374657374
 BUILD       := build
-SOURCES     := source
-DATA        := data
-INCLUDES    := include
+SOURCES     := src
+OUT_DIR     := dist/$(APP_TITLEID)
+BUILD_NSP   := $(BUILD)/$(TARGET).nsp
 
 ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
@@ -25,75 +23,63 @@ CFLAGS += $(INCLUDE) -D__SWITCH__
 ASFLAGS := -g $(ARCH)
 LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(TARGET).map
 
-LIBS := -lnx
+LIBS    := -lnx
 LIBDIRS := $(PORTLIBS) $(LIBNX)
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 
-export OUTPUT := $(CURDIR)/$(TARGET)
+export OUTPUT := $(CURDIR)/$(BUILD)/$(TARGET)
 export TOPDIR := $(CURDIR)
-
-export VPATH := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-	$(foreach dir,$(DATA),$(CURDIR)/$(dir))
-
+export VPATH := $(CURDIR)/$(SOURCES)
 export DEPSDIR := $(CURDIR)/$(BUILD)
-
-CFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-SFILES   := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-BINFILES := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
 export LD := $(CC)
 
-export OFILES_BIN := $(addsuffix .o,$(BINFILES))
-export OFILES_SRC := $(CFILES:.c=.o) $(SFILES:.s=.o)
-export OFILES     := $(OFILES_BIN) $(OFILES_SRC)
-export HFILES_BIN := $(addsuffix .h,$(subst .,_,$(BINFILES)))
+CFILES := $(notdir $(wildcard $(SOURCES)/*.c))
+SFILES := $(notdir $(wildcard $(SOURCES)/*.s))
 
-export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-	$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-	-I$(CURDIR)/$(BUILD)
-
+export OFILES := $(CFILES:.c=.o) $(SFILES:.s=.o)
+export INCLUDE := $(foreach dir,$(LIBDIRS),-I$(dir)/include) -I$(CURDIR)/$(BUILD)
 export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 export APP_JSON := $(TOPDIR)/$(TARGET).json
 export BUILD_EXEFS_SRC :=
 
-.PHONY: all clean nx_release package_release $(BUILD)
+.PHONY: all clean build
 
-all: nx_release
+all: $(OUT_DIR)/flags/boot2.flag $(OUT_DIR)/exefs.nsp $(OUT_DIR)/toolbox.json
 
-nx_release: $(BUILD) package_release
+$(BUILD_NSP): build
+	@test -f $@
 
-$(BUILD):
-	@[ -d $@ ] || mkdir -p $@
+build:
+	@mkdir -p $(BUILD)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-package_release: $(TARGET).nsp
-	@mkdir -p out/$(APP_TITLEID)/flags
-	@cp $(TARGET).nsp out/$(APP_TITLEID)/exefs.nsp
-	@cp toolbox.json out/$(APP_TITLEID)/toolbox.json
-	@touch out/$(APP_TITLEID)/flags/boot2.flag
+$(OUT_DIR)/flags/boot2.flag:
+	@mkdir -p $(@D)
+	@touch $@
+
+$(OUT_DIR)/exefs.nsp: $(BUILD_NSP)
+	@mkdir -p $(@D)
+	@cp $< $@
+
+$(OUT_DIR)/toolbox.json: toolbox.json
+	@mkdir -p $(@D)
+	@cp $< $@
 
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).lst $(TARGET).map $(TARGET).npdm $(TARGET).nso $(TARGET).nsp out
+	@rm -rf $(BUILD) out
 
 else
 
-.PHONY: all
-
 DEPENDS := $(OFILES:.o=.d)
+
+.PHONY: all
 
 all: $(OUTPUT).nsp
 
 $(OUTPUT).nsp: $(OUTPUT).nso $(OUTPUT).npdm
 $(OUTPUT).nso: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
-
-$(OFILES_SRC): $(HFILES_BIN)
-
-%.bin.o %_bin.h: %.bin
-	@echo $(notdir $<)
-	@$(bin2o)
 
 -include $(DEPENDS)
 
