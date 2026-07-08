@@ -5,67 +5,18 @@
 #include <switch/services/bsd.h>
 #include <threads.h>
 
-#define KB(x) ((x) * 1024u)
-#define ALIGN_UP(value, alignment) (((value) + ((alignment) - 1u)) & ~((alignment) - 1u))
-#define ALIGN_MSS(value) ((((value) + 1499u) / 1500u) * 1500u)
-
-enum {
-	RequestBufferSize = 512,
-	InnerHeapSize = KB(64),
-	SocketCountMax = 4,
-	SocketLibraryVersion = 7,
-	SocketTcpBufferSize = KB(16),
-	SocketUdpSendBufferSize = KB(9),
-	SocketUdpReceiveBufferSize = 42240,
-	SocketBufferEfficiency = 2,
-	SocketTransferMemorySize = ALIGN_UP((ALIGN_MSS(SocketTcpBufferSize) * SocketBufferEfficiency * 2u) * SocketCountMax, 0x1000u),
-};
-
-u32 __nx_applet_type = AppletType_None;
-
-static alignas(0x1000) uint8_t g_socket_transfer_memory[SocketTransferMemorySize];
-
-void __libnx_initheap(void) {
-	static uint8_t inner_heap[InnerHeapSize];
-	extern void* fake_heap_start;
-	extern void* fake_heap_end;
-
-	fake_heap_start = inner_heap;
-	fake_heap_end = inner_heap + sizeof(inner_heap);
-}
-
-void __appInit(void) {
-	auto result = smInitialize();
-	if (R_FAILED(result)) {
-		diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_InitFail_SM));
-	}
-
-	const BsdInitConfig bsd_config = {
-		.version = SocketLibraryVersion,
-		.tmem_buffer = g_socket_transfer_memory,
-		.tmem_buffer_size = sizeof(g_socket_transfer_memory),
-		.tcp_tx_buf_size = SocketTcpBufferSize,
-		.tcp_rx_buf_size = SocketTcpBufferSize,
-		.tcp_tx_buf_max_size = 0,
-		.tcp_rx_buf_max_size = 0,
-		.udp_tx_buf_size = SocketUdpSendBufferSize,
-		.udp_rx_buf_size = SocketUdpReceiveBufferSize,
-		.sb_efficiency = SocketBufferEfficiency,
-	};
-
-	result = bsdInitialize(&bsd_config, SocketCountMax, BsdServiceType_System);
-	if (R_FAILED(result)) {
-		diagAbortWithResult(result);
-	}
-
-	smExit();
-}
-
-void __appExit(void) {
+/**
+ * Exit the BSD service when the application exits.
+ */
+void __appExit() {
 	bsdExit();
 }
 
 // clang-format off
+/**
+ * Response for connection test.
+ * @see http://ctest.cdn.nintendo.net
+ */
 static const char HTTP_RESPONSE[] =
 	"HTTP/1.0 200 OK\r\n"
 	"Content-Length: 2\r\n"
@@ -74,10 +25,21 @@ static const char HTTP_RESPONSE[] =
 	"ok";
 // clang-format on
 
-static const auto ADDRESS_LENGTH = sizeof(struct sockaddr_in);
-static const auto HTTP_LENGTH = sizeof(HTTP_RESPONSE) - 1;
-static const auto OPTION_LENGTH = sizeof(uint32_t);
+/**
+ * Constants.
+ */
+enum {
+	ADDRESS_LENGTH = sizeof(struct sockaddr_in),
+	BUFFER_LENGTH = 0x8000,
+	HTTP_LENGTH = sizeof(HTTP_RESPONSE) - 1,
+	OPTION_LENGTH = sizeof(uint32_t),
+	PAGE_LENGTH = 0x1000,
+};
 
+/**
+ * Listen 127.0.0.1:80 and respond with a simple HTTP response.
+ * @return no return on success, and an errno value on failure.
+ */
 int main() {
 	do {
 		const auto server = bsdSocketExempt(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -120,3 +82,56 @@ int main() {
 	while (!thrd_sleep(&(const struct timespec) { 1 }, nullptr));
 	return errno;
 }
+
+/**
+ * TCP transfer memory buffer for the BSD service.
+ */
+static alignas(PAGE_LENGTH) uint8_t transfer_buffer[BUFFER_LENGTH];
+
+/**
+ * Initialize the BSD service.
+ */
+void __appInit() {
+	const auto manager = smInitialize();
+	if (R_FAILED(manager)) {
+		diagAbortWithResult(manager);
+	}
+
+	const auto bsd = bsdInitialize(
+		&(BsdInitConfig) {
+			.version = 2,
+			.tmem_buffer = transfer_buffer,
+			.tmem_buffer_size = BUFFER_LENGTH,
+			.tcp_tx_buf_size = PAGE_LENGTH,
+			.tcp_rx_buf_size = PAGE_LENGTH,
+			.sb_efficiency = 1,
+		},
+		1,
+		BsdServiceType_Auto
+	);
+	if (R_FAILED(bsd)) {
+		diagAbortWithResult(bsd);
+	}
+	smExit();
+}
+
+/**
+ * Fake heap. Only 1 page.
+ */
+static alignas(PAGE_LENGTH) uint8_t fake_heap[PAGE_LENGTH];
+
+/**
+ * Initialize the heap for libnx.
+ */
+void __libnx_initheap() {
+	extern void* fake_heap_start;
+	extern void* fake_heap_end;
+
+	fake_heap_start = fake_heap;
+	fake_heap_end = fake_heap + PAGE_LENGTH;
+}
+
+/**
+ * Applet type. None.
+ */
+const uint32_t __nx_applet_type = AppletType_None;
