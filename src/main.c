@@ -79,7 +79,9 @@ int main() {
 	close:
 		bsdClose(server);
 	}
-	while (!thrd_sleep(&(const struct timespec) { 1 }, nullptr));
+	while (!thrd_sleep(&(const struct timespec) {
+		.tv_sec = 1,
+	}, nullptr));
 	return errno;
 }
 
