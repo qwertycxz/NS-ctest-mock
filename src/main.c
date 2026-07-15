@@ -45,20 +45,15 @@ int main() {
 		const auto server = bsdSocketExempt(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (server < 0) continue;
 
-		if (bsdSetSockOpt(server, SOL_SOCKET, SO_NOSIGPIPE, &(bool) { true }, OPTION_LENGTH) ||
+		struct sockaddr_in address = {
+			.sin_len = ADDRESS_LENGTH,
+			.sin_family = AF_INET,
+			.sin_port = htons(80),
+		};
+
+		if (inet_pton(AF_INET, "127.0.0.1", &address.sin_addr) != 1 ||
 			bsdSetSockOpt(server, SOL_SOCKET, SO_REUSEADDR, &(bool) { true }, OPTION_LENGTH) ||
-			bsdBind(
-				server,
-				(const struct sockaddr* const)&(const struct sockaddr_in) {
-					.sin_len = ADDRESS_LENGTH,
-					.sin_family = AF_INET,
-					.sin_port = htons(80),
-					.sin_addr = {
-						.s_addr = htonl(INADDR_LOOPBACK),
-					},
-				},
-				ADDRESS_LENGTH
-			) ||
+			bsdBind(server, (const struct sockaddr* const)&address, ADDRESS_LENGTH) ||
 			bsdListen(server, SOMAXCONN)) {
 			goto close;
 		}
@@ -79,9 +74,12 @@ int main() {
 	close:
 		bsdClose(server);
 	}
-	while (!thrd_sleep(&(const struct timespec) {
-		.tv_sec = 1,
-	}, nullptr));
+	while (!thrd_sleep(
+		&(const struct timespec) {
+			.tv_sec = 1,
+		},
+		nullptr
+	));
 	return errno;
 }
 
@@ -118,7 +116,17 @@ void __appInit() {
 }
 
 /**
- * Fake heap. Only 1 page.
+ * Fake heap for libnx.
+ */
+extern void* fake_heap_start;
+
+/**
+ * Fake heap end for libnx.
+ */
+extern void* fake_heap_end;
+
+/**
+ * Our fake heap. Only 1 page.
  */
 static alignas(PAGE_LENGTH) uint8_t fake_heap[PAGE_LENGTH];
 
@@ -126,9 +134,6 @@ static alignas(PAGE_LENGTH) uint8_t fake_heap[PAGE_LENGTH];
  * Initialize the heap for libnx.
  */
 void __libnx_initheap() {
-	extern void* fake_heap_start;
-	extern void* fake_heap_end;
-
 	fake_heap_start = fake_heap;
 	fake_heap_end = fake_heap + PAGE_LENGTH;
 }
