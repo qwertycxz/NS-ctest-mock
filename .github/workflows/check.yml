@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://schemastore.org/github-workflow
+jobs:
+  check:
+    container:
+      image: devkitpro/devkita64:latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: awalsh128/cache-apt-pkgs-action@681749ae568c81c2037cb9185e38b709b261bd2f
+        with:
+          packages: clang-format
+      # - run: make format.check lint # format.check has bug before clang-format 19
+      - run: make format lint all
+      - uses: actions/upload-artifact@main
+        with:
+          compression-level: 9
+          if-no-files-found: error
+          path: atmosphere
+on:
+  pull_request:
+  push:
+    branches:
+      - '*'
+permissions:
+  contents: read
