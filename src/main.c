@@ -51,9 +51,7 @@ int main() {
 			.sin_port = htons(80),
 		};
 
-		if (inet_pton(AF_INET, "127.0.0.1", &address.sin_addr) != 1 ||
-			bsdSetSockOpt(server, SOL_SOCKET, SO_REUSEADDR, &(bool) { true }, OPTION_LENGTH) ||
-			bsdBind(server, (const struct sockaddr* const)&address, ADDRESS_LENGTH) ||
+		if (inet_pton(AF_INET, "127.0.0.1", &address.sin_addr) != 1 || bsdSetSockOpt(server, SOL_SOCKET, SO_REUSEADDR, &(bool) { true }, OPTION_LENGTH) || bsdBind(server, (const struct sockaddr* const)&address, ADDRESS_LENGTH) ||
 			bsdListen(server, SOMAXCONN)) {
 			goto close;
 		}
