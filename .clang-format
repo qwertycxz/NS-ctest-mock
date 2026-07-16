@@ -69,7 +69,7 @@ RemoveEmptyLinesInUnwrappedLines: true
 RemoveParentheses: ReturnStatement
 RemoveSemicolon: true
 SeparateDefinitionBlocks: Always
-SortUsingDeclarations: Lexicographic
+# SortUsingDeclarations: Lexicographic
 SpaceBeforeCpp11BracedList: true
 SpaceBeforeParens: ControlStatementsExceptControlMacros
 TabWidth: 4

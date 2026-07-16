@@ -5,6 +5,7 @@ endif
 export TOPDIR ?= $(CURDIR)
 APP_ID ?= 4E532D6374657374
 CFILES ?= $(sort $(shell find $(VPATH) -type f -name *.c -printf '%P\n'))
+LINTER ?= $(CC) -MMD -MP -fanalyzer -fsyntax-only $(CFLAGS)
 FORMATFILES ?= $(shell git ls-files *.c *.h *.json)
 ODIRS ?= $(dir $(OFILES))
 V_VERSION ?= $(shell git describe --match v* --tags)
@@ -67,7 +68,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 
 ifneq ($(notdir $(CURDIR)), build)
 
-.PHONY: all clean format lint
+.PHONY: all clean format format.check lint lint.fix
 all: atmosphere/contents/$(APP_ID)/flags/boot2.flag atmosphere/contents/$(APP_ID)/exefs.nsp atmosphere/contents/$(APP_ID)/toolbox.json
 atmosphere/contents/$(APP_ID)/flags/boot2.flag:
 	mkdir -p $(@D)
@@ -90,12 +91,22 @@ clean:
 format: $(FORMATFILES:%=$(DEPSDIR)/%.format)
 $(DEPSDIR)/%.format: % .clang-format
 	mkdir -p $(@D)
-	clang-format --Wno-error=unknown -i $<
+	clang-format -i --Wno-error=unknown $<
+	touch $@
+format.check: $(FORMATFILES:%=$(DEPSDIR)/%.format.check)
+$(DEPSDIR)/%.format.check: % .clang-format
+	mkdir -p $(@D)
+	clang-format -n -Werror --Wno-error=unknown $<
 	touch $@
 lint: $(CFILES:%.c=$(DEPSDIR)/%.lint)
 $(DEPSDIR)/%.lint: $(VPATH)/%.c
 	mkdir -p $(@D)
-	$(CC) -MMD -MP -Werror -fanalyzer -fsyntax-only -MF $(@:.lint=.lint.d) -MT $@ $(CFLAGS) $<
+	$(LINTER) -Werror -MF $(@:.lint=.lint.d) -MT $@ $<
+	touch $@
+lint.fix: $(CFILES:%.c=$(DEPSDIR)/%.lint.fix)
+$(DEPSDIR)/%.lint.fix: $(VPATH)/%.c
+	mkdir -p $(@D)
+	$(LINTER) -dumpdir build/ -fdiagnostics-format=sarif-file -fdiagnostics-generate-patch -MF $(@:.lint.fix=.lint.fix.d) -MT $@ $< 2>&1 | git apply -p 0 --allow-empty --unsafe-paths
 	touch $@
 -include $(CFILES:%.c=$(DEPSDIR)/%.lint.d)
 
