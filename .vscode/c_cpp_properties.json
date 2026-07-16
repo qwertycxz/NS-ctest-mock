@@ -1,0 +1,17 @@
+{
+	"configurations": [
+		{
+			"compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
+			"cStandard": "c23",
+			"defines": [
+				"auto=uint8_t"
+			],
+			"includePath": [
+				"${workspaceFolder}/**",
+				"/opt/devkitpro/libnx/include"
+			],
+			"name": "Linux"
+		}
+	],
+	"version": 4
+}

@@ -3,14 +3,14 @@ $(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>dev
 endif
 
 export TOPDIR ?= $(CURDIR)
+APP_ID ?= 4E532D6374657374
 CFILES ?= $(sort $(shell find $(VPATH) -type f -name *.c -printf '%P\n'))
-DISTDIR ?= atmosphere/contents/4E532D6374657374
 FORMATFILES ?= $(shell git ls-files *.c *.h *.json)
 ODIRS ?= $(dir $(OFILES))
 
 .EXTRA_PREREQS = $(TOPDIR)/Makefile
 APP_AUTHOR = qwerty吃小庄
-APP_JSON = $(VPATH)/app.json
+APP_JSON = $(DEPSDIR)/app.json
 APP_TITLE = NS-ctest-mock
 APP_VERSION = 0.1.0
 CFLAGS = \
@@ -67,19 +67,23 @@ include $(DEVKITPRO)/libnx/switch_rules
 ifneq ($(notdir $(CURDIR)), build)
 
 .PHONY: all clean format lint
-all: $(DISTDIR)/flags/boot2.flag $(DISTDIR)/exefs.nsp $(DISTDIR)/toolbox.json
-$(DISTDIR)/flags/boot2.flag:
+all: atmosphere/contents/$(APP_ID)/flags/boot2.flag atmosphere/contents/$(APP_ID)/exefs.nsp atmosphere/contents/$(APP_ID)/toolbox.json
+atmosphere/contents/$(APP_ID)/flags/boot2.flag:
 	mkdir -p $(@D)
 	touch $@
-$(DISTDIR)/exefs.nsp: $(OUTPUT).nsp
+atmosphere/contents/$(APP_ID)/exefs.nsp: $(OUTPUT).nsp
 	mkdir -p $(@D)
 	ln -f $< $@
-$(DISTDIR)/toolbox.json: $(VPATH)/toolbox.json
+$(OUTPUT).nsp: $(APP_JSON)
+	$(MAKE) -C $(DEPSDIR) -f $(TOPDIR)/Makefile $@
+atmosphere/contents/$(APP_ID)/toolbox.json: $(DEPSDIR)/toolbox.json
 	mkdir -p $(@D)
 	ln -f $< $@
-$(OUTPUT).nsp: $(APP_JSON) $(CFILES)
+$(APP_JSON) $(DEPSDIR)/toolbox.json &: $(OUTPUT).elf $(VPATH)/app.py
+	python $(VPATH)/app.py $(OUTPUT).elf $(APP_ID) $(APP_TITLE)
+$(OUTPUT).elf: $(CFILES)
 	mkdir -p $(DEPSDIR)
-	$(MAKE) -C $(DEPSDIR) -f $(TOPDIR)/Makefile
+	$(MAKE) -C $(DEPSDIR) -f $(TOPDIR)/Makefile $@
 clean:
 	rm -rf atmosphere $(DEPSDIR)
 format: $(FORMATFILES:%=$(DEPSDIR)/%.format)
@@ -98,7 +102,7 @@ else
 
 .PHONY: all
 all: $(OUTPUT).nsp
-$(OUTPUT).nsp: $(OUTPUT).nso $(OUTPUT).npdm
+$(OUTPUT).nsp: $(OUTPUT).npdm $(OUTPUT).nso
 $(OUTPUT).nso: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
 $(OFILES): | $(ODIRS:%=$(DEPSDIR)/%)
