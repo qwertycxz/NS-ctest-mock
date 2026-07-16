@@ -7,12 +7,13 @@ APP_ID ?= 4E532D6374657374
 CFILES ?= $(sort $(shell find $(VPATH) -type f -name *.c -printf '%P\n'))
 FORMATFILES ?= $(shell git ls-files *.c *.h *.json)
 ODIRS ?= $(dir $(OFILES))
+V_VERSION ?= $(shell git describe --match v* --tags)
 
 .EXTRA_PREREQS = $(TOPDIR)/Makefile
 APP_AUTHOR = qwerty吃小庄
 APP_JSON = $(DEPSDIR)/app.json
 APP_TITLE = NS-ctest-mock
-APP_VERSION = 0.1.0
+APP_VERSION = $(V_VERSION:v%=%)
 CFLAGS = \
 	-O3 \
 	-Wall \

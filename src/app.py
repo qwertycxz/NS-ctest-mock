@@ -16,6 +16,8 @@ with open(f'{build}/app.json', 'w', encoding = 'utf-8', newline = '\n') as f:
 	dump({
 	'address_space_type': 3,
 	'default_cpu_id': 3,
+	'disable_device_address_space_merge': False,
+	'enable_alias_region_extra_size': False,
 	'filesystem_access': {
 		'permissions': '0',
 	},
@@ -45,10 +47,14 @@ with open(f'{build}/app.json', 'w', encoding = 'utf-8', newline = '\n') as f:
 	'name': argument.name,
 	'optimize_memory_allocation': True,
 	'pool_partition': 2,
+	'prevent_code_reads': True,
 	'program_id': f'{argument.id}',
 	'program_id_range_max': f'{argument.id}',
 	'program_id_range_min': f'{argument.id}',
 	'service_access': ['bsd:s'],
+	'signature_key_generation': 0,
+	'system_resource_size': '1000',
+	'version': '0',
 }, f, ensure_ascii = False)
 
 with open(f'{build}/toolbox.json', 'w', encoding = 'utf-8', newline = '\n') as f:
