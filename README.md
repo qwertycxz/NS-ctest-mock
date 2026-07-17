@@ -1,5 +1,19 @@
 # NS-ctest-mock
 
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/t/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub commits since latest release](https://img.shields.io/github/commits-since/qwertycxz/NS-ctest-mock/latest)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub contributors](https://img.shields.io/github/contributors/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub Created At](https://img.shields.io/github/created-at/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub language count](https://img.shields.io/github/languages/count/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/qwertycxz/NS-ctest-mock/total)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/qwertycxz)](https://ko-fi.com/qwertycxz)
+[![GitHub Answered Discussions](https://img.shields.io/github/discussions/answered/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub repo file or directory count](https://img.shields.io/github/directory-file-count/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub repo size](https://img.shields.io/github/repo-size/qwertycxz/NS-ctest-mock)](https://github.com/qwertycxz/NS-ctest-mock)
+[![GitHub followers](https://img.shields.io/github/followers/qwertycxz)](https://github.com/qwertycxz)
+[![GitHub User's stars](https://img.shields.io/github/stars/qwertycxz)](https://github.com/qwertycxz)
+
 This homebrew project is a minimal mock of Nintendo's connection-test server, which is used by the Nintendo Switch to verify that it can reach Nintendo's servers.
 
 ## Usage
