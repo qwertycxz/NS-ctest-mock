@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
 from json import dump
-from os.path import dirname
+from os import getcwd
+from os.path import dirname, normpath
 from re import findall
 from subprocess import check_output
 
@@ -10,7 +11,9 @@ parser.add_argument('elf', type = str)
 parser.add_argument('id', type = str)
 parser.add_argument('name', type = str)
 argument = parser.parse_args()
-build: str = dirname(argument.elf)
+
+build: str = dirname(normpath(argument.elf))
+assert build.startswith(getcwd()), 'ELF file must be in the current working directory or a subdirectory of it.'
 
 with open(f'{build}/app.json', 'w', encoding = 'utf-8', newline = '\n') as f:
 	dump({
