@@ -15,7 +15,10 @@ jobs:
         with:
           compression-level: 9
           if-no-files-found: error
-          path: atmosphere
+          path: |
+            atmosphere
+            LICENSE
+            README.md
 on:
   pull_request:
   push:
