@@ -19,7 +19,7 @@ If you want to block all nintendo servers, you can also just set:
 127.0.0.1 *nintendo*
 ```
 
-Then unpack the `.zip` file from the latest release to your SD card. Now you are good to go!
+Then unpack `NS-ctest-mock.tar` from the latest release to your SD card. Now you are good to go!
 
 The sysmodule will automatically start on boot and listen for connection-test requests. You can stop and restart it with any Hekate-Toolbox-compatible sysmodule manager.
 
